@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>UC Shop</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --gold:#FFD84D;--gold2:#FF9B00;--gold3:#FFF1A8;
+  --bg:#07090F;--bg2:#0E1119;--bg3:#161925;--bg4:#1E2333;
+  --border:rgba(255,216,77,.13);--border2:rgba(255,216,77,.25);
+  --text:#EEF0F8;--muted:#5C6480;--muted2:#8890A8;
+  --green:#2ECC71;--red:#E74C3C;--blue:#3B82F6;
+  --orange:#FF9B00;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Barlow',sans-serif;font-size:14px;
+  display:flex;flex-direction:column;
+}
+
+/* ── CANVAS BG ── */
+#bg-canvas{position:fixed;inset:0;z-index:0;opacity:.35}
+
+/* ── SCROLLABLE CONTENT ── */
+.app{position:relative;z-index:1;flex:1;overflow:hidden;display:flex;flex-direction:column}
+.pages{flex:1;overflow:hidden;position:relative}
+.page{
+  position:absolute;inset:0;overflow-y:auto;
+  padding-bottom:90px;
+  transition:opacity .22s ease,transform .22s ease;
+  opacity:0;transform:translateX(24px);pointer-events:none;
+}
+.page.active{opacity:1;transform:translateX(0);pointer-events:all}
+.page::-webkit-scrollbar{display:none}
+
+/* ── TOPBAR ── */
+.topbar{
+  position:relative;z-index:10;
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px 10px;
+  background:linear-gradient(180deg,var(--bg) 0%,transparent 100%);
+}
+.topbar-logo{
+  width:38px;height:38px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Bebas Neue';font-size:17px;color:#07090F;letter-spacing:1px;
+  box-shadow:0 4px 16px rgba(255,216,77,.3);
+}
+.topbar-info{flex:1}
+.topbar-title{font-family:'Bebas Neue';font-size:20px;letter-spacing:2px;color:var(--gold);line-height:1}
+.topbar-sub{font-size:10px;color:var(--muted2);font-weight:500;letter-spacing:.5px}
+.topbar-right{text-align:right}
+.topbar-user{font-size:12px;font-weight:700;color:var(--text)}
+.topbar-badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:rgba(255,216,77,.1);border:1px solid var(--border2);
+  border-radius:20px;padding:2px 8px;
+  font-size:11px;font-weight:700;color:var(--gold);margin-top:2px;
+}
+
+/* ── BALANCE CARD ── */
+.balance-card{
+  margin:0 14px 16px;
+  background:linear-gradient(135deg,#13180A 0%,#0A1422 60%,#1A1200 100%);
+  border:1px solid var(--border2);border-radius:20px;
+  padding:18px 20px;position:relative;overflow:hidden;
+}
+.balance-card::before{
+  content:'';position:absolute;top:-40px;right:-40px;
+  width:180px;height:180px;
+  background:radial-gradient(circle,rgba(255,216,77,.12) 0%,transparent 70%);
+}
+.balance-card::after{
+  content:'';position:absolute;bottom:-30px;left:-20px;
+  width:120px;height:120px;
+  background:radial-gradient(circle,rgba(255,155,0,.08) 0%,transparent 70%);
+}
+.balance-label{font-size:11px;font-weight:600;color:var(--muted2);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.balance-amount{
+  font-family:'Bebas Neue';font-size:42px;letter-spacing:2px;
+  background:linear-gradient(90deg,var(--gold3),var(--gold),var(--gold2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  line-height:1;margin-bottom:4px;
+}
+.balance-currency{font-size:14px;font-weight:700;color:var(--gold);opacity:.7;margin-left:2px}
+.balance-actions{display:flex;gap:8px;margin-top:14px;position:relative;z-index:1}
+.balance-btn{
+  flex:1;padding:10px 8px;border-radius:12px;border:none;
+  font-family:'Barlow';font-size:13px;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:all .18s;
+}
+.balance-btn-primary{background:linear-gradient(135deg,var(--gold),var(--gold2));color:#07090F}
+.balance-btn-secondary{background:var(--bg4);color:var(--text);border:1px solid var(--border)}
+.balance-btn:active{transform:scale(.96)}
+
+/* ── QUICK STATS ── */
+.stats-row{display:flex;gap:8px;margin:0 14px 16px}
+.stat-card{
+  flex:1;background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;padding:12px;text-align:center;
+}
+.stat-num{font-family:'Bebas Neue';font-size:22px;color:var(--gold);letter-spacing:1px}
+.stat-lbl{font-size:10px;color:var(--muted2);font-weight:600;margin-top:2px;letter-spacing:.4px}
+
+/* ── SECTION HEADER ── */
+.sec{padding:0 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px}
+.sec-name{font-family:'Bebas Neue';font-size:17px;letter-spacing:2px;color:var(--text)}
+.sec-line{flex:1;height:1px;background:linear-gradient(90deg,var(--border2),transparent)}
+
+/* ── PLAYER LOOKUP ── */
+.player-lookup{margin:0 14px 16px}
+.lookup-box{
+  background:var(--bg2);border:1.5px solid var(--border);
+  border-radius:16px;overflow:hidden;
+}
+.lookup-input-row{display:flex;gap:0}
+.lookup-input{
+  flex:1;background:transparent;border:none;outline:none;
+  padding:14px 16px;color:var(--text);font-size:16px;font-weight:600;
+  font-family:'Barlow';
+}
+.lookup-input::placeholder{color:var(--muted);font-weight:400}
+.lookup-trigger{
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  border:none;padding:12px 18px;cursor:pointer;
+  font-family:'Bebas Neue';font-size:15px;color:#07090F;letter-spacing:1px;
+  transition:opacity .18s;
+}
+.lookup-trigger:active{opacity:.8}
+.lookup-trigger:disabled{opacity:.4;cursor:not-allowed}
+
+/* Player result card */
+.player-card{
+  border-top:1px solid var(--border);
+  padding:14px 16px;
+  display:flex;align-items:center;gap:14px;
+  animation:slideDown .25s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes slideDown{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.player-avatar{
+  width:52px;height:52px;border-radius:14px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;
+  position:relative;overflow:hidden;
+}
+.player-avatar-bg{
+  position:absolute;inset:0;
+  background:linear-gradient(135deg,#1A3A5C,#0A1C2E);
+  border:2px solid rgba(255,216,77,.3);border-radius:14px;
+}
+.player-avatar-emoji{position:relative;z-index:1}
+.player-avatar-ring{
+  position:absolute;inset:-2px;border-radius:16px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2),transparent,var(--gold));
+  z-index:-1;animation:rotateRing 3s linear infinite;
+}
+@keyframes rotateRing{to{transform:rotate(360deg)}}
+.player-info{flex:1}
+.player-nickname{font-size:18px;font-weight:700;color:var(--text);line-height:1}
+.player-id{font-size:12px;color:var(--muted2);margin-top:3px}
+.player-level{
+  display:inline-flex;align-items:center;gap:4px;margin-top:5px;
+  background:rgba(255,216,77,.1);border:1px solid var(--border);
+  border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;color:var(--gold);
+}
+.player-verified{color:var(--green);font-size:22px}
+.player-error{
+  border-top:1px solid rgba(231,76,60,.2);
+  padding:12px 16px;
+  display:flex;align-items:center;gap:8px;
+  color:var(--red);font-size:13px;font-weight:600;
+}
+.lookup-hint{font-size:11px;color:var(--muted);margin-top:8px;padding:0 2px}
+
+/* Loading pulse */
+.player-loading{
+  border-top:1px solid var(--border);padding:16px;
+  display:flex;align-items:center;gap:12px;
+}
+.pulse-avatar{width:52px;height:52px;border-radius:14px;background:var(--bg3);animation:pulse 1.2s ease infinite}
+.pulse-line{height:12px;border-radius:6px;background:var(--bg3);animation:pulse 1.2s ease infinite}
+.pulse-line.w60{width:60%}
+.pulse-line.w40{width:40%;margin-top:8px}
+@keyframes pulse{0%,100%{opacity:.4}50%{opacity:.9}}
+
+/* ── UC PACKAGES ── */
+.packages{padding:0 14px;margin-bottom:16px}
+.pkg-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pkg{
+  background:var(--bg2);border:1.5px solid var(--border);
+  border-radius:16px;padding:14px 12px;cursor:pointer;
+  transition:all .18s;position:relative;overflow:hidden;text-align:center;
+}
+.pkg::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--gold),var(--gold2));
+  transform:scaleX(0);transform-origin:left;transition:transform .25s;
+}
+.pkg.sel{border-color:var(--gold);background:linear-gradient(135deg,#1A1500,#0A1000)}
+.pkg.sel::before{transform:scaleX(1)}
+.pkg:active{transform:scale(.96)}
+
+.pkg-badge{
+  position:absolute;top:8px;right:8px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  color:#07090F;font-size:9px;font-weight:800;
+  padding:2px 6px;border-radius:20px;letter-spacing:.5px;
+}
+.pkg-check{
+  position:absolute;top:8px;left:8px;
+  width:20px;height:20px;border-radius:50%;
+  background:var(--gold);color:#07090F;
+  display:none;align-items:center;justify-content:center;font-size:11px;font-weight:900;
+}
+.pkg.sel .pkg-check{display:flex}
+
+.pkg-visual{margin:0 auto 8px;position:relative;width:56px;height:56px}
+.pkg-diamond{
+  width:100%;height:100%;
+  background:linear-gradient(135deg,#00C9FF,#0066CC,#003388);
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+  box-shadow:0 0 20px rgba(0,150,255,.4);
+  animation:shimmer 3s ease infinite;
+}
+.pkg.sel .pkg-diamond{
+  background:linear-gradient(135deg,var(--gold3),var(--gold),var(--gold2));
+  box-shadow:0 0 20px rgba(255,216,77,.5);
+}
+@keyframes shimmer{0%,100%{filter:brightness(1)}50%{filter:brightness(1.3)}}
+
+.pkg-diamond-count{
+  position:absolute;bottom:-4px;right:-4px;
+  background:var(--bg);border:1px solid var(--border2);
+  border-radius:20px;padding:1px 6px;
+  font-size:10px;font-weight:800;color:var(--gold);
+}
+.pkg-uc{font-family:'Bebas Neue';font-size:24px;color:var(--gold);letter-spacing:1px;line-height:1}
+.pkg-bonus{font-size:10px;color:var(--muted2);font-weight:600;margin-bottom:8px}
+.pkg-price{font-size:14px;font-weight:800;color:var(--text)}
+.pkg-price-orig{font-size:11px;color:var(--muted);text-decoration:line-through;margin-left:3px}
+.pkg-save{font-size:10px;color:var(--green);font-weight:700;margin-top:2px}
+
+/* ── TOPUP PAGE ── */
+.topup-amounts{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 14px;margin-bottom:16px}
+.topup-amount{
+  background:var(--bg2);border:1.5px solid var(--border);
+  border-radius:14px;padding:16px;text-align:center;cursor:pointer;
+  transition:all .18s;
+}
+.topup-amount.sel{border-color:var(--gold);background:rgba(255,216,77,.06)}
+.topup-amount:active{transform:scale(.96)}
+.topup-amt{font-family:'Bebas Neue';font-size:22px;color:var(--gold);letter-spacing:1px}
+.topup-currency{font-size:11px;color:var(--muted2);font-weight:600}
+.topup-bonus{font-size:11px;color:var(--green);font-weight:700;margin-top:4px}
+
+.pay-methods-row{display:flex;gap:8px;padding:0 14px;margin-bottom:16px}
+.pay-method-btn{
+  flex:1;background:var(--bg2);border:1.5px solid var(--border);
+  border-radius:12px;padding:12px 8px;text-align:center;cursor:pointer;
+  transition:all .18s;
+}
+.pay-method-btn.sel{border-color:var(--gold);background:rgba(255,216,77,.05)}
+.pay-method-btn:active{transform:scale(.96)}
+.pm-logo{font-size:24px;margin-bottom:4px}
+.pm-name{font-size:12px;font-weight:700}
+
+/* ── ORDERS ── */
+.order-item{
+  margin:0 14px 10px;
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:16px;padding:14px;
+  display:flex;align-items:center;gap:12px;
+}
+.order-icon{
+  width:46px;height:46px;border-radius:12px;flex-shrink:0;
+  background:linear-gradient(135deg,#001A33,#003366);
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.order-info{flex:1}
+.order-title{font-size:15px;font-weight:700}
+.order-sub{font-size:11px;color:var(--muted2);margin-top:2px}
+.order-right{text-align:right}
+.order-badge{
+  display:inline-block;border-radius:20px;padding:3px 8px;
+  font-size:10px;font-weight:800;letter-spacing:.4px;
+}
+.ob-ok{background:rgba(46,204,113,.12);color:var(--green);border:1px solid rgba(46,204,113,.3)}
+.ob-wait{background:rgba(255,216,77,.1);color:var(--gold);border:1px solid rgba(255,216,77,.3)}
+.ob-fail{background:rgba(231,76,60,.1);color:var(--red);border:1px solid rgba(231,76,60,.3)}
+.order-price{font-size:13px;font-weight:700;color:var(--text);margin-top:4px}
+
+/* ── PROFILE ── */
+.profile-hero{
+  margin:0 14px 16px;
+  background:linear-gradient(135deg,#0A1422,#130A22);
+  border:1px solid var(--border);border-radius:20px;
+  padding:20px;text-align:center;
+}
+.profile-avatar{
+  width:72px;height:72px;border-radius:20px;margin:0 auto 12px;
+  background:linear-gradient(135deg,var(--gold),var(--gold2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:34px;
+  box-shadow:0 8px 24px rgba(255,216,77,.25);
+}
+.profile-name{font-size:20px;font-weight:800}
+.profile-username{font-size:12px;color:var(--muted2);margin-top:2px}
+
+.info-list{margin:0 14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden}
+.info-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.04);
+}
+.info-row:last-child{border-bottom:none}
+.info-row-label{font-size:13px;color:var(--muted2)}
+.info-row-value{font-size:13px;font-weight:700;color:var(--text)}
+.info-row-value.gold{color:var(--gold);font-family:'Bebas Neue';font-size:16px;letter-spacing:1px}
+
+/* ── ORDER SUMMARY CARD ── */
+.buy-summary{
+  margin:0 14px 14px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:16px;overflow:hidden;
+}
+.buy-summary-row{display:flex;justify-content:space-between;padding:11px 16px;border-bottom:1px solid rgba(255,255,255,.04)}
+.buy-summary-row:last-child{border-bottom:none;background:rgba(255,216,77,.04)}
+.bsr-label{font-size:13px;color:var(--muted2)}
+.bsr-value{font-size:13px;font-weight:700}
+.bsr-total{font-family:'Bebas Neue';font-size:20px;color:var(--gold);letter-spacing:1px}
+
+/* ── MAIN ACTION BUTTON ── */
+.action-wrap{padding:0 14px 16px}
+.action-btn{
+  width:100%;padding:16px;border:none;border-radius:16px;cursor:pointer;
+  font-family:'Bebas Neue';font-size:20px;letter-spacing:2px;
+  background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 100%);
+  color:#07090F;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  box-shadow:0 6px 28px rgba(255,155,0,.35);
+  transition:all .18s;
+}
+.action-btn:active{transform:scale(.97);box-shadow:0 3px 14px rgba(255,155,0,.2)}
+.action-btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none}
+.action-btn.outline{
+  background:transparent;border:1.5px solid var(--border2);
+  color:var(--gold);box-shadow:none;font-size:16px;margin-top:8px;
+}
+
+/* ── BOTTOM NAV ── */
+.bottom-nav{
+  position:relative;z-index:10;
+  display:flex;
+  background:rgba(10,12,18,.96);
+  border-top:1px solid var(--border);
+  backdrop-filter:blur(16px);
+  padding:8px 0 max(8px,env(safe-area-inset-bottom));
+  flex-shrink:0;
+}
+.nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:6px 4px;cursor:pointer;
+  color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.5px;
+  transition:color .18s;
+  border:none;background:none;font-family:'Barlow';
+}
+.nav-btn.active{color:var(--gold)}
+.nav-btn svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:90px;left:50%;transform:translateX(-50%) translateY(30px);
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:14px;padding:12px 20px;
+  font-size:13px;font-weight:600;white-space:nowrap;
+  box-shadow:0 8px 32px rgba(0,0,0,.6);
+  z-index:999;opacity:0;transition:all .3s cubic-bezier(.34,1.56,.64,1);
+  pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{border-color:rgba(46,204,113,.4)}
+.toast.err{border-color:rgba(231,76,60,.4)}
+
+/* ── LOADER OVERLAY ── */
+.loader-overlay{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(7,9,15,.9);backdrop-filter:blur(8px);
+  flex-direction:column;align-items:center;justify-content:center;gap:20px;
+}
+.loader-overlay.on{display:flex}
+.ld-ring{width:60px;height:60px;position:relative}
+.ld-ring::before,.ld-ring::after{content:'';position:absolute;border-radius:50%}
+.ld-ring::before{inset:0;border:3px solid rgba(255,216,77,.15)}
+.ld-ring::after{inset:0;border:3px solid transparent;border-top-color:var(--gold);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ld-title{font-family:'Bebas Neue';font-size:22px;color:var(--gold);letter-spacing:2px}
+.ld-sub{font-size:12px;color:var(--muted2)}
+
+/* ── EMPTY STATE ── */
+.empty{text-align:center;padding:48px 24px}
+.empty-icon{font-size:52px;margin-bottom:14px;opacity:.6}
+.empty-title{font-size:16px;font-weight:700;color:var(--muted2)}
+.empty-sub{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.6}
+
+/* ── UTILS ── */
+.mb8{margin-bottom:8px} .mb16{margin-bottom:16px}
+.px14{padding:0 14px}
+.no-orders-cta{padding:0 14px;margin-top:12px}
+</style>
+</head>
+<body>
+
+<!-- Background canvas -->
+<canvas id="bg-canvas"></canvas>
+
+<!-- App -->
+<div class="app">
+
+  <!-- ═══ PAGE: HOME ═══ -->
+  <div class="page active" id="p-home">
+    <div class="topbar">
+      <div class="topbar-logo">UC</div>
+      <div class="topbar-info">
+        <div class="topbar-title">UC SHOP</div>
+        <div class="topbar-sub">PUBG Mobile · MidasBuy</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-user" id="tn-user">Yuklanmoqda...</div>
+        <div class="topbar-badge">⚡ ONLINE</div>
+      </div>
+    </div>
+
+    <!-- Balance -->
+    <div class="balance-card">
+      <div class="balance-label">💰 HISOBINGIZ</div>
+      <div>
+        <span class="balance-amount" id="balance-display">0</span>
+        <span class="balance-currency">so'm</span>
+      </div>
+      <div class="balance-actions">
+        <button class="balance-btn balance-btn-primary" onclick="nav('topup')">➕ Hisob to'ldirish</button>
+        <button class="balance-btn balance-btn-secondary" onclick="nav('shop')">🛒 UC Sotib ol</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num" id="home-orders">0</div>
+        <div class="stat-lbl">BUYURTMALAR</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" id="home-uc">0</div>
+        <div class="stat-lbl">JAMI UC</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:var(--green)">24/7</div>
+        <div class="stat-lbl">ISHLAYDI</div>
+      </div>
+    </div>
+
+    <!-- Banner -->
+    <div style="margin:0 14px 16px;background:linear-gradient(135deg,#0A1A0A,#1A0A0A);border:1px solid var(--border);border-radius:16px;padding:16px 16px;display:flex;align-items:center;gap:14px">
+      <div style="font-size:40px;flex-shrink:0">🎮</div>
+      <div>
+        <div style="font-family:'Bebas Neue';font-size:16px;letter-spacing:1px;margin-bottom:4px">PUBG MOBILE UC</div>
+        <div style="font-size:12px;color:var(--muted2);line-height:1.5">Hisobingizni to'ldirib, xohlagan vaqtda tez va qulay UC sotib oling</div>
+      </div>
+    </div>
+
+    <!-- Last orders preview -->
+    <div class="sec"><div class="sec-name">SO'NGGI XARIDLAR</div><div class="sec-line"></div></div>
+    <div id="home-orders-list">
+      <div class="empty">
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">Xaridlar yo'q</div>
+        <div class="empty-sub">Birinchi UC xaridingizni qiling!</div>
+      </div>
+    </div>
+    <div class="no-orders-cta" id="home-cta" style="display:none">
+      <button class="action-btn" onclick="nav('shop')" style="font-size:16px">🛒 UC SOTIB OLISH</button>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE: SHOP ═══ -->
+  <div class="page" id="p-shop">
+    <div class="topbar">
+      <div class="topbar-logo">🛒</div>
+      <div class="topbar-info">
+        <div class="topbar-title">MAGAZIN</div>
+        <div class="topbar-sub">UC paketlar</div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-user">Balans</div>
+        <div class="topbar-badge" id="shop-balance-badge">0 so'm</div>
+      </div>
+    </div>
+
+    <!-- Player lookup -->
+    <div class="sec"><div class="sec-name">🎮 PUBG O'YINCHI</div><div class="sec-line"></div></div>
+    <div class="player-lookup">
+      <div class="lookup-box">
+        <div class="lookup-input-row">
+          <input class="lookup-input" id="pubg-input" type="number" placeholder="PUBG ID kiriting..." inputmode="numeric" oninput="onPubgInput()">
+          <button class="lookup-trigger" id="lookup-btn" onclick="lookupPlayer()" disabled>IZLA</button>
+        </div>
+        <div id="lookup-result"></div>
+      </div>
+      <div class="lookup-hint">📌 PUBG Mobile → Profil → ID raqamni nusxalab kiriting</div>
+    </div>
+
+    <!-- Packages -->
+    <div class="sec"><div class="sec-name">💎 UC PAKETLAR</div><div class="sec-line"></div></div>
+    <div class="packages">
+      <div class="pkg-grid" id="pkg-grid"></div>
+    </div>
+
+    <!-- Summary -->
+    <div id="shop-summary" style="display:none">
+      <div class="sec"><div class="sec-name">📋 BUYURTMA</div><div class="sec-line"></div></div>
+      <div class="buy-summary">
+        <div class="buy-summary-row"><span class="bsr-label">O'yinchi</span><span class="bsr-value" id="bs-player">—</span></div>
+        <div class="buy-summary-row"><span class="bsr-label">PUBG ID</span><span class="bsr-value" id="bs-id">—</span></div>
+        <div class="buy-summary-row"><span class="bsr-label">Paket</span><span class="bsr-value" style="color:var(--gold)" id="bs-pkg">—</span></div>
+        <div class="buy-summary-row"><span class="bsr-label">Balans</span><span class="bsr-value" id="bs-balance">—</span></div>
+        <div class="buy-summary-row"><span class="bsr-label">To'lov</span><span class="bsr-total" id="bs-price">—</span></div>
+      </div>
+    </div>
+
+    <div class="action-wrap">
+      <button class="action-btn" id="buy-btn" disabled onclick="doBuy()">💎 SOTIB OLISH</button>
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted)">Kafolatlangan · Avtomatik yetkazish · 5–15 daqiqa</div>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE: TOP-UP ═══ -->
+  <div class="page" id="p-topup">
+    <div class="topbar">
+      <div class="topbar-logo">➕</div>
+      <div class="topbar-info">
+        <div class="topbar-title">HISOB TO'LDIRISH</div>
+        <div class="topbar-sub">Click & Payme</div>
+      </div>
+    </div>
+
+    <div style="margin:0 14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:16px;text-align:center">
+      <div style="font-size:11px;color:var(--muted2);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Joriy balans</div>
+      <div style="font-family:'Bebas Neue';font-size:36px;color:var(--gold);letter-spacing:2px" id="topup-cur-balance">0 so'm</div>
+    </div>
+
+    <div class="sec"><div class="sec-name">💵 MIQDOR TANLANG</div><div class="sec-line"></div></div>
+    <div class="topup-amounts" id="topup-amounts-grid"></div>
+
+    <!-- Custom amount -->
+    <div style="padding:0 14px;margin-bottom:16px">
+      <div style="font-size:11px;color:var(--muted2);font-weight:600;letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">YOKI O'ZINGIZ KIRITING</div>
+      <input id="custom-amount" class="lookup-input" type="number" placeholder="Miqdor (so'm)..." inputmode="numeric"
+        style="background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;width:100%;font-size:16px"
+        oninput="onCustomAmount()">
+    </div>
+
+    <div class="sec"><div class="sec-name">💳 TO'LOV USULI</div><div class="sec-line"></div></div>
+    <div class="pay-methods-row">
+      <div class="pay-method-btn sel" id="pm-click" onclick="selPayMethod('click',this)">
+        <div class="pm-logo">🟢</div>
+        <div class="pm-name">Click</div>
+      </div>
+      <div class="pay-method-btn" id="pm-payme" onclick="selPayMethod('payme',this)">
+        <div class="pm-logo">🔵</div>
+        <div class="pm-name">Payme</div>
+      </div>
+    </div>
+
+    <div style="margin:0 14px 16px;background:rgba(255,216,77,.05);border:1px solid var(--border);border-radius:14px;padding:14px;display:flex;gap:10px">
+      <div style="font-size:20px;flex-shrink:0">ℹ️</div>
+      <div style="font-size:12px;color:var(--muted2);line-height:1.6">To'lov amalga oshgandan so'ng balans avtomatik qo'shiladi. Muammo bo'lsa @support ga yozing.</div>
+    </div>
+
+    <div class="action-wrap">
+      <button class="action-btn" id="topup-btn" disabled onclick="doTopup()">➕ HISOB TO'LDIRISH</button>
+    </div>
+  </div>
+
+  <!-- ═══ PAGE: ORDERS ═══ -->
+  <div class="page" id="p-orders">
+    <div class="topbar">
+      <div class="topbar-logo">📦</div>
+      <div class="topbar-info">
+        <div class="topbar-title">BUYURTMALAR</div>
+        <div class="topbar-sub">Tarix va holat</div>
+      </div>
+    </div>
+    <div id="orders-container"></div>
+  </div>
+
+  <!-- ═══ PAGE: PROFILE ═══ -->
+  <div class="page" id="p-profile">
+    <div class="topbar">
+      <div class="topbar-logo">👤</div>
+      <div class="topbar-info">
+        <div class="topbar-title">PROFIL</div>
+        <div class="topbar-sub">Hisob ma'lumotlari</div>
+      </div>
+    </div>
+
+    <div class="profile-hero">
+      <div class="profile-avatar" id="prof-avatar">👤</div>
+      <div class="profile-name" id="prof-name">—</div>
+      <div class="profile-username" id="prof-username">—</div>
+    </div>
+
+    <div class="sec"><div class="sec-name">📊 STATISTIKA</div><div class="sec-line"></div></div>
+    <div class="info-list">
+      <div class="info-row"><span class="info-row-label">Joriy balans</span><span class="info-row-value gold" id="pr-balance">0 so'm</span></div>
+      <div class="info-row"><span class="info-row-label">Jami to'ldirilgan</span><span class="info-row-value" id="pr-topup">0 so'm</span></div>
+      <div class="info-row"><span class="info-row-label">Jami buyurtmalar</span><span class="info-row-value" id="pr-orders">0 ta</span></div>
+      <div class="info-row"><span class="info-row-label">Jami sotib olingan UC</span><span class="info-row-value" id="pr-uc">0 UC</span></div>
+    </div>
+
+    <div class="sec"><div class="sec-name">⚙️ SOZLAMALAR</div><div class="sec-line"></div></div>
+    <div class="info-list">
+      <div class="info-row" style="cursor:pointer" onclick="showToast('📞 @UCShopSupport','ok')">
+        <span class="info-row-label">Qo'llab-quvvatlash</span>
+        <span class="info-row-value" style="color:var(--blue)">@UCShopSupport ↗</span>
+      </div>
+      <div class="info-row"><span class="info-row-label">Versiya</span><span class="info-row-value">1.0.0</span></div>
+    </div>
+  </div>
+
+  <!-- Pages container -->
+  <div class="pages" id="pages-slot" style="display:none"></div>
+
+  <!-- Bottom nav -->
+  <div class="bottom-nav">
+    <button class="nav-btn active" id="nb-home" onclick="nav('home')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      BOSH
+    </button>
+    <button class="nav-btn" id="nb-shop" onclick="nav('shop')">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 001.96-1.61L23 6H6"/></svg>
+      MAGAZIN
+    </button>
+    <button class="nav-btn" id="nb-topup" onclick="nav('topup')">
+      <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      TO'LDIRISH
+    </button>
+    <button class="nav-btn" id="nb-orders" onclick="nav('orders')">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      TARIX
+    </button>
+    <button class="nav-btn" id="nb-profile" onclick="nav('profile')">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      PROFIL
+    </button>
+  </div>
+</div>
+
+<!-- Loader -->
+<div class="loader-overlay" id="loader">
+  <div class="ld-ring"></div>
+  <div class="ld-title" id="ld-title">KUTING...</div>
+  <div class="ld-sub" id="ld-sub">Jarayon amalga oshirilmoqda</div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast-el"></div>
+
+<script>
+// ════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════
+const API = 'https://YOUR_SERVER.com/api';   // ← o'zgartiring
+
+const PACKAGES = [
+  {id:'p30',   uc:30,   bonus:0,   price:8000,   orig:10000,  badge:'ARZON'},
+  {id:'p60',   uc:60,   bonus:0,   price:12000,  orig:15000,  badge:'TOP'},
+  {id:'p325',  uc:300,  bonus:25,  price:58000,  orig:72000,  badge:null},
+  {id:'p660',  uc:600,  bonus:60,  price:114000, orig:142000, badge:'ARZONI'},
+  {id:'p1800', uc:1500, bonus:300, price:285000, orig:355000, badge:null},
+  {id:'p3850', uc:3000, bonus:850, price:555000, orig:690000, badge:'CHEGIRMA'},
+  {id:'p8100', uc:6000, bonus:2100,price:1100000,orig:1370000,badge:null},
+];
+
+const TOPUP_AMOUNTS = [
+  {amt:50000,  bonus:null},
+  {amt:100000, bonus:'+5%'},
+  {amt:200000, bonus:'+10%'},
+  {amt:500000, bonus:'+15%'},
+];
+
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
+const _store = { balance:0, orders:[], totalTopup:0, totalUC:0 };
+const DB = {
+  get balance(){ return _store.balance },
+  set balance(v){ _store.balance = parseInt(v)||0 },
+  get orders(){ return _store.orders },
+  set orders(v){ _store.orders = v },
+  get totalTopup(){ return _store.totalTopup },
+  set totalTopup(v){ _store.totalTopup = parseInt(v)||0 },
+  get totalUC(){ return _store.totalUC },
+  set totalUC(v){ _store.totalUC = parseInt(v)||0 },
+};
+function ls(k){ return null }
+
+let S = {
+  page: 'home',
+  player: null,       // {nickname, pubgId}
+  selPkg: null,
+  selTopup: null,
+  payMethod: 'click',
+  tgUser: null,
+};
+
+// ════════════════════════════════════════════════
+//  CANVAS BACKGROUND
+// ════════════════════════════════════════════════
+(function initBg(){
+  const c = document.getElementById('bg-canvas');
+  const ctx = c.getContext('2d');
+  let W,H,pts=[];
+  function resize(){ W=c.width=innerWidth; H=c.height=innerHeight; }
+  resize(); window.addEventListener('resize',resize);
+  for(let i=0;i<40;i++) pts.push({
+    x:Math.random()*2000,y:Math.random()*2000,
+    vx:(Math.random()-.5)*.3,vy:(Math.random()-.5)*.3,
+    r:Math.random()*1.5+.3,
+    a:Math.random()
+  });
+  function draw(){
+    ctx.clearRect(0,0,W,H);
+    pts.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,216,77,${p.a*.4})`;
+      ctx.fill();
+    });
+    // faint grid
+    ctx.strokeStyle='rgba(255,216,77,0.03)';ctx.lineWidth=1;
+    for(let x=0;x<W;x+=60){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke()}
+    for(let y=0;y<H;y+=60){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+
+// ════════════════════════════════════════════════
+//  TELEGRAM INIT
+// ════════════════════════════════════════════════
+const tg = window.Telegram?.WebApp;
+window.addEventListener('DOMContentLoaded', ()=>{
+  if(tg){ tg.ready(); tg.expand(); tg.setHeaderColor('#07090F'); tg.setBackgroundColor('#07090F'); S.tgUser = tg.initDataUnsafe?.user; }
+  initUser();
+  renderPackages();
+  renderTopupAmounts();
+  refreshAll();
+});
+
+function initUser(){
+  const u = S.tgUser;
+  let name='Mehmon', username='';
+  if(u){ name=[u.first_name,u.last_name].filter(Boolean).join(' '); username='@'+(u.username||'user'); }
+  document.getElementById('tn-user').textContent = name;
+  document.getElementById('prof-name').textContent = name;
+  document.getElementById('prof-username').textContent = username;
+  const initials = name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() || '👤';
+  document.getElementById('prof-avatar').textContent = initials;
+}
+
+// ════════════════════════════════════════════════
+//  NAV
+// ════════════════════════════════════════════════
+function nav(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('p-'+page).classList.add('active');
+  const nb = document.getElementById('nb-'+page);
+  if(nb) nb.classList.add('active');
+  S.page = page;
+  if(page==='home') refreshHome();
+  if(page==='orders') renderOrders();
+  if(page==='profile') refreshProfile();
+  if(page==='topup') refreshTopupPage();
+  if(page==='shop') refreshShopBalance();
+}
+
+// ════════════════════════════════════════════════
+//  REFRESH
+// ════════════════════════════════════════════════
+function refreshAll(){ refreshHome(); refreshProfile(); refreshTopupPage(); refreshShopBalance(); }
+
+function refreshHome(){
+  const b = DB.balance;
+  document.getElementById('balance-display').textContent = fmt(b);
+  const ords = DB.orders;
+  document.getElementById('home-orders').textContent = ords.length;
+  document.getElementById('home-uc').textContent = fmtK(DB.totalUC);
+  const list = document.getElementById('home-orders-list');
+  const cta  = document.getElementById('home-cta');
+  if(!ords.length){
+    list.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">Xaridlar yo'q</div><div class="empty-sub">Birinchi UC xaridingizni qiling!</div></div>`;
+    cta.style.display='block';
+  } else {
+    cta.style.display='none';
+    list.innerHTML=ords.slice(0,3).map(orderCard).join('');
+  }
+}
+
+function refreshProfile(){
+  const b=DB.balance, ords=DB.orders;
+  document.getElementById('pr-balance').textContent = fmt(b)+' so\'m';
+  document.getElementById('pr-topup').textContent   = fmt(DB.totalTopup)+' so\'m';
+  document.getElementById('pr-orders').textContent  = ords.length+' ta';
+  document.getElementById('pr-uc').textContent      = DB.totalUC.toLocaleString()+' UC';
+}
+
+function refreshTopupPage(){
+  document.getElementById('topup-cur-balance').textContent = fmt(DB.balance)+' so\'m';
+}
+
+function refreshShopBalance(){
+  document.getElementById('shop-balance-badge').textContent = fmt(DB.balance)+' so\'m';
+}
+
+// ════════════════════════════════════════════════
+//  PLAYER LOOKUP
+// ════════════════════════════════════════════════
+function onPubgInput(){
+  const v = document.getElementById('pubg-input').value.trim();
+  document.getElementById('lookup-btn').disabled = v.length < 6;
+  if(!v){ document.getElementById('lookup-result').innerHTML=''; S.player=null; updateBuyBtn(); }
+}
+
+async function lookupPlayer(){
+  const pubgId = document.getElementById('pubg-input').value.trim();
+  if(!pubgId||pubgId.length<6) return;
+
+  // Loading state
+  document.getElementById('lookup-result').innerHTML=`
+    <div class="player-loading">
+      <div class="pulse-avatar"></div>
+      <div style="flex:1"><div class="pulse-line w60"></div><div class="pulse-line w40"></div></div>
+    </div>`;
+  document.getElementById('lookup-btn').disabled=true;
+
+  try {
+    // ── REAL API CALL ──────────────────────────────────────
+    // MidasBuy yoki serveringiz orqali nickname olish
+    // const res = await fetch(`${API}/verify-player`, {
+    //   method:'POST', headers:{'Content-Type':'application/json'},
+    //   body: JSON.stringify({pubgId})
+    // });
+    // const data = await res.json();
+    // ──────────────────────────────────────────────────────
+
+    // DEMO (backend tayyor bo'lguncha):
+    await delay(1400);
+    const demoNicknames = ['GHOST_UZ','NightWolf99','ProSniper_TAS','KingSlayer','DarkBlade_UZ','ShadowX'];
+    const nickname = demoNicknames[parseInt(pubgId.slice(-1)) % demoNicknames.length];
+    const data = { success:true, nickname, pubgId };
+
+    if(data.success){
+      S.player = {nickname: data.nickname, pubgId};
+      document.getElementById('pubg-input').readOnly = true;
+      document.getElementById('lookup-btn').textContent='✓';
+      document.getElementById('lookup-btn').style.background='rgba(46,204,113,.2)';
+      document.getElementById('lookup-btn').style.color='var(--green)';
+      document.getElementById('lookup-result').innerHTML=`
+        <div class="player-card">
+          <div class="player-avatar">
+            <div class="player-avatar-bg"></div>
+            <div class="player-avatar-ring"></div>
+            <div class="player-avatar-emoji">${avatarEmoji(data.nickname)}</div>
+          </div>
+          <div class="player-info">
+            <div class="player-nickname">${data.nickname}</div>
+            <div class="player-id">ID: ${pubgId}</div>
+            <div class="player-level">🎖️ PUBG Mobile</div>
+          </div>
+          <div class="player-verified">✅</div>
+        </div>`;
+      updateSummary(); updateBuyBtn();
+    } else {
+      S.player=null;
+      document.getElementById('lookup-result').innerHTML=`
+        <div class="player-error">❌ O'yinchi topilmadi. ID ni tekshiring.</div>`;
+      document.getElementById('lookup-btn').disabled=false;
+    }
+  } catch(e){
+    document.getElementById('lookup-result').innerHTML=`
+      <div class="player-error">⚠️ Server bilan bog'lanib bo'lmadi.</div>`;
+    document.getElementById('lookup-btn').disabled=false;
+  }
+}
+
+function avatarEmoji(name){
+  const emojis=['🐺','👻','🦅','🎯','⚡','🔥','💀','🛡️'];
+  return emojis[name.length%emojis.length];
+}
+
+// ════════════════════════════════════════════════
+//  PACKAGES
+// ════════════════════════════════════════════════
+function renderPackages(){
+  document.getElementById('pkg-grid').innerHTML = PACKAGES.map(p=>{
+    const save = Math.round((1-p.price/p.orig)*100);
+    return `
+    <div class="pkg" id="pk-${p.id}" onclick="selPkg('${p.id}')">
+      ${p.badge?`<div class="pkg-badge">${p.badge}</div>`:''}
+      <div class="pkg-check">✓</div>
+      <div class="pkg-visual">
+        <div class="pkg-diamond">💎</div>
+        <div class="pkg-diamond-count">${fmtK(p.uc)}</div>
+      </div>
+      <div class="pkg-uc">${(p.uc+p.bonus)>=1000?((p.uc+p.bonus)/1000).toFixed((p.uc+p.bonus)%1000?1:0)+'K':(p.uc+p.bonus)} UC</div>
+      <div class="pkg-bonus">${p.bonus>0?p.uc+' + '+p.bonus+' bonus UC':'asosiy paket'}</div>
+      <div>
+        <span class="pkg-price">${fmt(p.price)} so'm</span>
+        <span class="pkg-price-orig">${fmt(p.orig)}</span>
+      </div>
+      <div class="pkg-save">−${save}% chegirma</div>
+    </div>`;
+  }).join('');
+}
+
+function selPkg(id){
+  S.selPkg = PACKAGES.find(p=>p.id===id);
+  document.querySelectorAll('.pkg').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('pk-'+id).classList.add('sel');
+  updateSummary(); updateBuyBtn();
+}
+
+function updateSummary(){
+  const sec = document.getElementById('shop-summary');
+  if(!S.player||!S.selPkg){ sec.style.display='none'; return; }
+  sec.style.display='block';
+  const p=S.selPkg;
+  document.getElementById('bs-player').textContent = S.player.nickname;
+  document.getElementById('bs-id').textContent     = S.player.pubgId;
+  document.getElementById('bs-pkg').textContent    = `${p.uc} UC${p.bonus?' +'+p.bonus+' bonus':''}`;
+  document.getElementById('bs-balance').textContent= fmt(DB.balance)+' so\'m';
+  document.getElementById('bs-price').textContent  = fmt(p.price)+' so\'m';
+}
+
+function updateBuyBtn(){
+  const btn = document.getElementById('buy-btn');
+  const ok = S.player && S.selPkg;
+  btn.disabled = !ok;
+  if(ok){
+    const enough = DB.balance >= S.selPkg.price;
+    btn.disabled = !enough;
+    btn.textContent = enough ? '💎 SOTIB OLISH' : '⚠️ BALANS YETARLI EMAS';
+  }
+}
+
+// ════════════════════════════════════════════════
+//  BUY
+// ════════════════════════════════════════════════
+async function doBuy(){
+  if(!S.player||!S.selPkg) return;
+  const p = S.selPkg;
+  if(DB.balance < p.price){ showToast('⚠️ Balans yetarli emas!','err'); nav('topup'); return; }
+
+  // Confirm
+  if(tg){
+    tg.showPopup({
+      title:'✅ Tasdiqlash',
+      message:`${p.uc} UC → ${S.player.nickname}\nNarx: ${fmt(p.price)} so'm\n\nDavom etilsinmi?`,
+      buttons:[{id:'ok',type:'ok',text:'HA, SOTIB OL'},{type:'cancel',text:'Bekor'}]
+    }, btn=>{ if(btn==='ok') executeBuy(); });
+  } else { executeBuy(); }
+}
+
+async function executeBuy(){
+  const p=S.selPkg;
+  showLoader('Buyurtma yaratilmoqda...','MidasBuy'ga yuborilmoqda');
+
+  try{
+    // Real backendda:
+    // const res = await fetch(`${API}/create-order`,{method:'POST',headers:{'Content-Type':'application/json'},
+    //   body:JSON.stringify({pubgId:S.player.pubgId,packageId:p.id,userId:S.tgUser?.id})});
+    // const data = await res.json();
+
+    await delay(1500);
+    showLoader('To\'lov amalga oshirilmoqda...','Balansingizdan ayrilmoqda');
+    await delay(1000);
+    showLoader('MidasBuy serveriga yuborilmoqda...','UC hisobga o\'tkazilmoqda');
+    await delay(1500);
+
+    // Deduct balance
+    DB.balance = DB.balance - p.price;
+    DB.totalUC = DB.totalUC + p.uc + p.bonus;
+
+    // Save order
+    const order = {
+      id:'ORD'+Date.now(), pubgId:S.player.pubgId,
+      nickname:S.player.nickname, pkg:`${p.uc} UC`,
+      ucAmount:p.uc+p.bonus, price:p.price,
+      date: new Date().toLocaleString('uz'), status:'completed'
+    };
+    const ords = DB.orders; ords.unshift(order); DB.orders=ords;
+
+    hideLoader();
+    showToast(`✅ ${p.uc} UC muvaffaqiyatli yuborildi!`,'ok');
+    refreshAll();
+
+    // Reset shop
+    S.player=null; S.selPkg=null;
+    document.getElementById('pubg-input').value='';
+    document.getElementById('pubg-input').readOnly=false;
+    document.getElementById('lookup-btn').textContent='IZLA';
+    document.getElementById('lookup-btn').style.cssText='';
+    document.getElementById('lookup-btn').disabled=true;
+    document.getElementById('lookup-result').innerHTML='';
+    document.getElementById('shop-summary').style.display='none';
+    document.querySelectorAll('.pkg').forEach(c=>c.classList.remove('sel'));
+    document.getElementById('buy-btn').disabled=true;
+
+    nav('orders');
+
+    if(tg) tg.showPopup({title:'🎉 Muvaffaqiyat!',message:`${p.uc} UC PUBG ID ${S.player?.pubgId||''} ga yuborildi!`,buttons:[{type:'ok'}]});
+
+  } catch(e){ hideLoader(); showToast('❌ Xatolik yuz berdi','err'); }
+}
+
+// ════════════════════════════════════════════════
+//  TOP-UP
+// ════════════════════════════════════════════════
+function renderTopupAmounts(){
+  document.getElementById('topup-amounts-grid').innerHTML = TOPUP_AMOUNTS.map((t,i)=>`
+    <div class="topup-amount ${i===1?'sel':''}" id="ta-${i}" onclick="selTopup(${i},${t.amt},this)">
+      <div class="topup-amt">${fmt(t.amt)}</div>
+      <div class="topup-currency">so'm</div>
+      ${t.bonus?`<div class="topup-bonus">${t.bonus} bonus</div>`:''}
+    </div>`
+  ).join('');
+  if(TOPUP_AMOUNTS[1]){ S.selTopup=TOPUP_AMOUNTS[1].amt; document.getElementById('topup-btn').disabled=false; }
+}
+
+function selTopup(idx,amt,el){
+  S.selTopup=amt;
+  document.getElementById('custom-amount').value='';
+  document.querySelectorAll('.topup-amount').forEach(a=>a.classList.remove('sel'));
+  el.classList.add('sel');
+  document.getElementById('topup-btn').disabled=false;
+}
+
+function onCustomAmount(){
+  const v=parseInt(document.getElementById('custom-amount').value);
+  if(v>=10000){ S.selTopup=v; document.getElementById('topup-btn').disabled=false;
+    document.querySelectorAll('.topup-amount').forEach(a=>a.classList.remove('sel')); }
+  else { S.selTopup=null; document.getElementById('topup-btn').disabled=true; }
+}
+
+function selPayMethod(method,el){
+  S.payMethod=method;
+  document.querySelectorAll('.pay-method-btn').forEach(b=>b.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+async function doTopup(){
+  if(!S.selTopup||S.selTopup<10000){ showToast('Miqdorni kiriting','err'); return; }
+  showLoader('To\'lov sahifasiga o\'tilmoqda...',S.payMethod==='click'?'🟢 Click':'🔵 Payme');
+
+  // Real backendda to'lov link yaratiladi:
+  // const res = await fetch(`${API}/create-topup`,{...})
+  // window.location.href = data.paymentUrl;
+
+  // DEMO: to'lov simulatsiyasi
+  await delay(2000);
+  showLoader('To\'lov amalga oshirilmoqda...','Tasdiqlash kutilmoqda');
+  await delay(2000);
+
+  const added = S.selTopup;
+  DB.balance   = DB.balance + added;
+  DB.totalTopup= DB.totalTopup + added;
+
+  hideLoader();
+  showToast(`✅ ${fmt(added)} so'm qo'shildi!`,'ok');
+  refreshAll();
+  S.selTopup=null;
+  document.getElementById('custom-amount').value='';
+  nav('home');
+}
+
+// ════════════════════════════════════════════════
+//  ORDERS
+// ════════════════════════════════════════════════
+function orderCard(o){
+  const badge = o.status==='completed'
+    ?'<span class="order-badge ob-ok">✅ BAJARILDI</span>'
+    :o.status==='pending'
+    ?'<span class="order-badge ob-wait">⏳ KUTILMOQDA</span>'
+    :'<span class="order-badge ob-fail">❌ XATO</span>';
+  return `
+  <div class="order-item">
+    <div class="order-icon">💎</div>
+    <div class="order-info">
+      <div class="order-title">${o.pkg}</div>
+      <div class="order-sub">${o.nickname} · ${o.pubgId}</div>
+      <div class="order-sub">${o.date}</div>
+    </div>
+    <div class="order-right">
+      ${badge}
+      <div class="order-price">${fmt(o.price)} so'm</div>
+    </div>
+  </div>`;
+}
+
+function renderOrders(){
+  const ords = DB.orders;
+  const c = document.getElementById('orders-container');
+  if(!ords.length){
+    c.innerHTML=`<div class="empty"><div class="empty-icon">📭</div>
+      <div class="empty-title">Buyurtmalar yo'q</div>
+      <div class="empty-sub">UC xaridingizdan so'ng bu yerda tarix paydo bo'ladi</div></div>
+      <div class="action-wrap"><button class="action-btn" onclick="nav('shop')">🛒 MAGAZINGA O'TISH</button></div>`;
+  } else { c.innerHTML = ords.map(orderCard).join(''); }
+}
+
+// ════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════
+function fmt(n){ return Number(n).toLocaleString('uz-UZ'); }
+function fmtK(n){ return n>=1000?(n/1000).toFixed(n%1000?1:0)+'K':n; }
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+let toastTimer;
+function showToast(msg,type=''){
+  const t=document.getElementById('toast-el');
+  t.textContent=msg; t.className='toast '+type+' show';
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),3200);
+}
+function showLoader(title,sub){
+  document.getElementById('ld-title').textContent=title;
+  document.getElementById('ld-sub').textContent=sub;
+  document.getElementById('loader').classList.add('on');
+}
+function hideLoader(){ document.getElementById('loader').classList.remove('on'); }
+</script>
+</body>
+</html>
